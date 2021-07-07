@@ -17,6 +17,7 @@ CHIP PC {
 
     PARTS:
     // Put your code here:
+    // image: https://cdn.jsdelivr.net/gh/XmchxUp/cloudimg@master/20210513/PC-Counter.5cv3uethyf80.png
     Mux16(a=prevOut, b=addOut, sel=inc, out=o1);
 
     Mux16(a=o1, b=in, sel=load, out=o2);
