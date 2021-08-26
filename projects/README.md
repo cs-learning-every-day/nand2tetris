@@ -2,6 +2,7 @@
 
 ## 资料
 - [官网](https://www.nand2tetris.org/)
+- [woai3c-nand2tetris](https://github.com/woai3c/nand2tetris)
 
 ### Projects
 - [X] Project 0: Introduction
@@ -9,7 +10,7 @@
 - [X] Project 2: Boolean Arithmetic
 - [X] Project 3: Sequential Logic
 - [X] Project 4: Machine Language
-- [ ] Project 5: Computer Architecture
+- [X] Project 5: Computer Architecture
 - [ ] Project 6: Assembler
 - [ ] Project 7: VM I: Stack Arithmetic
 - [ ] Project 8: VM II: Program Control

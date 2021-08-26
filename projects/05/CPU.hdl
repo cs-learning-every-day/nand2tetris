@@ -25,7 +25,31 @@
  * than to the address resulting from executing the current instruction. 
  */
 
+/*
+instruction[15] :: 1 = C instruction, 0 = A instruction
+A Instruction
+    instruction[0..14] = constant value
+C Instruction
+    instruction[0..2] = jump command
+        instruction[0] = j3 jump if > 0
+        instruction[1] = j2 jump if 0
+        instruction[2] = j1 jump if < 0
+    instruction[3..5] = destination
+        instruction[3] = d3 write to memory
+        instruction[4] = d2 load D register
+        instruction[5] = d1 load A register
+    instruction[6..11] = c portion   ALU p37
+        instruction[6] = c6 no
+        instruction[7] = c5 f
+        instruction[8] = c4 ny
+        instruction[9] = c3 zy
+        instruction[10] = c2 nx
+        instruction[11] = c1 zx
+    instruction[12] = A or imM
+*/
+
 CHIP CPU {
+    
 
     IN  inM[16],         // M value input  (M = contents of RAM[A])
         instruction[16], // Instruction for execution
@@ -39,5 +63,62 @@ CHIP CPU {
         pc[15];          // address of next instruction
 
     PARTS:
-    // Put your code here:
+    Not(in=instruction[15], out=ainst);
+    Not(in=ainst, out=cinst);
+
+    // 图5.9
+    // A Register
+    // 设置A register的值
+    And(a=cinst, b=instruction[5], out=isLoadAluOut);
+    Mux16(a=instruction, b=outAlu, sel=instruction[15], out=inAR);
+
+    Or(a=ainst, b=isLoadAluOut, out=isLoadAR);
+    ARegister(in=inAR, load=isLoadAR, out=outAR);
+
+
+    // D Register
+    And(a=cinst, b=instruction[4], out=isLoadDR);
+    DRegister(in=outAlu, load=isLoadDR, out=outDR);
+
+    // ALU
+    Mux16(a=outAR, b=inM, sel=instruction[12], out=outAM);
+    
+    And(a=instruction[11], b=true, out=zx);
+    And(a=instruction[10], b=true, out=nx);
+    And(a=instruction[9], b=true, out=zy);
+    And(a=instruction[8], b=true, out=ny);
+    And(a=instruction[7], b=true, out=f);
+    And(a=instruction[6], b=true, out=no);
+
+    ALU(x=outDR, y=outAM, zx=zx, nx=nx, zy=zy, ny=ny, f=f, no=no, out=outAlu, zr=zr, ng=ng);
+
+    // Jump? 图4.5
+    Not(in=zr, out=nzr);
+    Not(in=ng, out=nng);
+    And(a=nzr, b=nng, out=pos);
+
+
+    And(a=instruction[0], b=pos, out=jgt);
+    And(a=instruction[1], b=zr, out=jz);
+    And(a=instruction[2], b=ng, out=jlt);
+
+    Or(a=jlt, b=jz, out=jltz);
+    Or(a=jltz, b=jgt, out=isJump);
+    And(a=cinst, b=isJump, out=shouldjump);
+
+    //=======
+    //OUTPUTS
+    //=======
+
+    // outM
+    And16(a=outAlu, b=true, out=outM);
+
+    // writeM
+    And(a=cinst, b=instruction[3], out=writeM);
+
+    // addressM
+    And16(a=outAR, b=true, out[0..14]=addressM);
+
+    // PC
+    PC(in=outAR, load=shouldjump, inc=true, reset=reset, out[0..14]=pc);
 }

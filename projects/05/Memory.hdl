@@ -27,5 +27,17 @@ CHIP Memory {
     OUT out[16];
 
     PARTS:
-    // Put your code here:
+    // 解析 判断操作是对Ram、Screen、Keyboard中哪一个
+    // RAM: 0x0000 - 0x3fff (0000 - 0011) 高四位
+    // Screen: 0x4000 - 0x5fff (0100- 0101)
+    // Keyboard: 0x6000 (0111)
+    // 取中两位可得 RAM: 00 01 Screen: 10 Keyboard: 11
+    DMux4Way(in=load, sel=address[13..14], a=loadR1, b=loadR2, c=loadS, d=loadK);
+    Or(a=loadR1, b=loadR2, out=loadR);
+
+    RAM16K(in=in, load=loadR, address=address[0..13], out=outR);
+    Screen(in=in, load=loadS, address=address[0..12], out=outS);
+    Keyboard(out=outK);
+
+    Mux4Way16(a=outR, b=outR, c=outS, d=outK, sel=address[13..14], out=out);
 }
