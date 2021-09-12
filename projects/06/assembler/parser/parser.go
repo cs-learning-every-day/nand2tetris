@@ -2,6 +2,7 @@ package parser
 
 import (
 	"assembler/code"
+	"assembler/symtable"
 	"strconv"
 	"strings"
 )
@@ -20,6 +21,10 @@ func hasMoreCommands(instructions []string) bool {
 
 func advance(instructions []string, isFirst bool) []string {
 	var text []string
+	if isFirst {
+		symtable.InitSymbolTable()
+	}
+
 	for hasMoreCommands(instructions) {
 		current := strings.ReplaceAll(instructions[0], " ", "")
 		instructions = instructions[1:]
@@ -30,20 +35,27 @@ func advance(instructions []string, isFirst bool) []string {
 
 		current = removeLastComment(current)
 		cmdType := commandType(current)
-		// isFirst 首次解析不会解析指令 只会收集符号 格式:(xxx)
+		// 首次解析构建符号表 并不产生代码
 		switch cmdType {
 		case 'A':
 			if !isFirst {
-				s := symbol(current, cmdType)
-				if v, err := strconv.Atoi(s); err == nil {
+				sym := symbol(current, cmdType)
+				if v, err := strconv.Atoi(sym); err == nil {
 					bv := int2Binary(v)
-					if len(bv) >= 16 {
-						bv = bv[1:16]
-					}
+					bv = bv[1:16]
 					text = append(text, "0"+bv, "\r\n")
-				} else {
-					// symbol
+				} else { // symbol
+					var bv string
+					if symtable.Contains(sym) {
+						bv = int2Binary(symtable.GetAddress(sym))
+					} else { // variable
+						bv = int2Binary(symtable.GetRamAddress())
+						symtable.AddEntry(sym, symtable.IncrRamAddress())
+					}
+					text = append(text, bv, "\r\n")
 				}
+			} else {
+				pc += 1
 			}
 		case 'C':
 			if !isFirst {
@@ -51,20 +63,23 @@ func advance(instructions []string, isFirst bool) []string {
 				d := code.Dest(current)
 				j := code.Jump(current)
 				text = append(text, "111"+c+d+j, "\r\n")
+			} else {
+				pc += 1
 			}
 		case 'L':
 			if isFirst {
-				_ = symbol(current, cmdType)
-				// TODO: 加入到符号表
+				sym := symbol(current, cmdType)
+				// 加入到符号表
+				symtable.AddEntry(sym, pc+1)
 			}
 		}
 	}
 	return text
 }
 
-// 最少16位二进制
+// 返回16位二进制
 func int2Binary(v int) string {
-	bv := strconv.FormatInt(int64(v), 2)
+	bv := strconv.FormatInt(int64(v&0x0000FFFF), 2)
 	for i := len(bv); i < 16; i++ {
 		bv = "0" + bv
 	}
