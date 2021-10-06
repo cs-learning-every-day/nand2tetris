@@ -1,6 +1,5 @@
 ## 资料
 - [官网](https://www.nand2tetris.org/)
-- [woai3c-nand2tetris](https://github.com/woai3c/nand2tetris)
 
 ### Part I
 - [X] Project 0: Introduction
