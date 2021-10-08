@@ -1,8 +1,8 @@
 package main
 
 import (
+	"VMTranslator/parser"
 	"VMTranslator/utils"
-	"fmt"
 	"io/fs"
 	"log"
 	"os"
@@ -21,9 +21,23 @@ func checkPathValid(path string) {
 
 // sourcePath肯定是.vm文件
 func createAsmFile(sourcePath string) {
-	suffixIdx := strings.LastIndex(sourcePath, ".vm")
-	targetPath := sourcePath[:suffixIdx] + ".asm"
-	fmt.Println(targetPath)
+	//suffixIdx := strings.LastIndex(sourcePath, ".vm")
+	//targetPath := sourcePath[:suffixIdx] + ".asm"
+
+	// open source file
+	sourceFile, err := os.Open(sourcePath)
+	if err != nil {
+		log.Fatalln("open failed")
+	}
+	defer sourceFile.Close()
+
+	parser.Parser(sourceFile)
+
+	//targetFile, err := os.Create(targetPath)
+	//if err != nil {
+	//	log.Fatalln("create failed")
+	//}
+	//defer targetFile.Close()
 }
 
 func visitDirectory(dirPath string) {
@@ -35,7 +49,6 @@ func visitDirectory(dirPath string) {
 		}
 
 		if !info.IsDir() {
-			fmt.Println("==", path)
 			createAsmFile(path)
 		}
 		return nil
