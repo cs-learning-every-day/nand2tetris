@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"VMTranslator/codewriter"
 	"bufio"
 	"fmt"
 	"io/fs"
@@ -23,38 +24,48 @@ const (
 	Nil
 )
 
-func Parser(file fs.File) {
-	scanner := bufio.NewScanner(file)
+func Parser(sourceFile fs.File) []string {
+	scanner := bufio.NewScanner(sourceFile)
 
 	scanner.Split(bufio.ScanLines)
+
+	var outputs []string
 
 	for hasMoreCommands(scanner) {
 		cmd := scanner.Text()
 		if isValidCommand(cmd) {
-			advance(cmd)
+			outputs = append(outputs, advance(cmd))
 		}
 	}
 
+	return outputs
 }
 
 func hasMoreCommands(scanner *bufio.Scanner) bool {
 	return scanner.Scan()
 }
 
-func advance(command string) {
+func advance(command string) string {
 
 	cmdType := commandType(command)
 	argOne := arg1(command, cmdType)
 	argTwo := arg2(command, cmdType)
+	cmdName := commandName(command)
 
 	switch cmdType {
 	case Arithmetic:
-		fmt.Println("Arithmetic: " + argOne + " " + argTwo)
+		return codewriter.WriteArithmetic(cmdName, argOne, argTwo)
 	case Pop:
 		fmt.Println("Pop: " + argOne + " " + argTwo)
 	case Push:
-		fmt.Println("Push: " + argOne + " " + argTwo)
+		return codewriter.WritePushPop(argOne, argTwo)
 	}
+
+	return ""
+}
+
+func commandName(command string) string {
+	return strings.Split(command, " ")[0]
 }
 
 func commandType(cmd string) CommandType {

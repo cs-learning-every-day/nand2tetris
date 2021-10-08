@@ -21,8 +21,8 @@ func checkPathValid(path string) {
 
 // sourcePath肯定是.vm文件
 func createAsmFile(sourcePath string) {
-	//suffixIdx := strings.LastIndex(sourcePath, ".vm")
-	//targetPath := sourcePath[:suffixIdx] + ".asm"
+	suffixIdx := strings.LastIndex(sourcePath, ".vm")
+	targetPath := sourcePath[:suffixIdx] + ".asm"
 
 	// open source file
 	sourceFile, err := os.Open(sourcePath)
@@ -31,13 +31,20 @@ func createAsmFile(sourcePath string) {
 	}
 	defer sourceFile.Close()
 
-	parser.Parser(sourceFile)
+	contents := parser.Parser(sourceFile)
 
-	//targetFile, err := os.Create(targetPath)
-	//if err != nil {
-	//	log.Fatalln("create failed")
-	//}
-	//defer targetFile.Close()
+	//fmt.Println(targetPath, ": ", contents)
+	targetFile, err := os.Create(targetPath)
+	if err != nil {
+		log.Fatalln("create failed")
+	}
+
+	defer targetFile.Close()
+
+	for _, line := range contents {
+		targetFile.WriteString(line)
+	}
+
 }
 
 func visitDirectory(dirPath string) {
