@@ -21,6 +21,7 @@ func checkPathValid(path string) {
 
 // sourcePath肯定是.vm文件
 func createAsmFile(sourcePath string) {
+
 	suffixIdx := strings.LastIndex(sourcePath, ".vm")
 	targetPath := sourcePath[:suffixIdx] + ".asm"
 
@@ -31,7 +32,7 @@ func createAsmFile(sourcePath string) {
 	}
 	defer sourceFile.Close()
 
-	contents := parser.Parser(sourceFile)
+	contents := parser.Parse(sourceFile)
 
 	//fmt.Println(targetPath, ": ", contents)
 	targetFile, err := os.Create(targetPath)
