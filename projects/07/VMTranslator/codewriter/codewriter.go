@@ -77,12 +77,12 @@ func WritePushPop(arg1, arg2 string, cmdType common.CommandType, filename string
 			tmp, _ := strconv.Atoi(arg2)
 			tmp += 16
 			segment := filename + "." + strconv.Itoa(tmp)
-			output = popTemplate(segment, arg2, true)
-			//output = "@SP\r\n" +
-			//	"AM=M-1\r\n" +
-			//	"D=M\r\n" +
-			//	"@" + filename + "." + strconv.Itoa(tmp) + "\r\n" +
-			//	"M=D\r\n"
+			//output = popTemplate(segment, arg2, true)
+			output = "@SP\r\n" +
+				"AM=M-1\r\n" +
+				"D=M\r\n" +
+				"@" + segment + "\r\n" +
+				"M=D\r\n"
 		} else if argArea == "pointer" && arg2 == "0" {
 			output = popTemplate("THIS", arg2, true)
 		} else if argArea == "pointer" && arg2 == "1" {
