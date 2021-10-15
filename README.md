@@ -11,7 +11,7 @@
 - [X] Project 6: Assembler
 
 ### Part II
-- [ ] Project 7: VM I: Stack Arithmetic
+- [x] Project 7: VM I: Stack Arithmetic
 - [ ] Project 8: VM II: Program Control
 - [ ] Project 9: High-Level Language
 - [ ] Project 10: Compiler I: Syntax Analysis
