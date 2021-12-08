@@ -3,13 +3,14 @@ package codewriter
 import (
 	"VMTranslator/common"
 	"log"
+	"regexp"
 	"strconv"
 	"strings"
 )
 
 var index = 0
 
-func WriteArithmetic(cmdName, arg1, arg2 string) string {
+func WriteArithmetic(cmdName string) string {
 	if cmdName == "add" {
 		return arithmeticTemplateOne() + "M=M+D\r\n"
 	} else if cmdName == "sub" {
@@ -103,6 +104,16 @@ func WritePushPop(arg1, arg2 string, cmdType common.CommandType, filename string
 	}
 
 	return output
+}
+
+func WriteLabel(arg1 string) string {
+	match, _ := regexp.MatchString(common.LabelReg, arg1)
+
+	if !match {
+		log.Fatal("label 后面不能跟数字开头")
+	}
+
+	return "(" + arg1 + ")\r\n"
 }
 
 // add、sub、or

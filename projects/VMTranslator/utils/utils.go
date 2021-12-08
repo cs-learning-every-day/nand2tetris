@@ -19,7 +19,14 @@ func PrintDirectoryFilename(path string) {
 	}
 }
 
-
+func Contains(s []string, t string) bool {
+	for _, a := range s {
+		if a == t {
+			return true
+		}
+	}
+	return false
+}
 
 func IsDirectory(path string) bool {
 	fileInfo, err := os.Stat(path)

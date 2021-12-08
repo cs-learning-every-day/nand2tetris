@@ -14,3 +14,5 @@ const (
 	Call
 	Nil
 )
+
+const LabelReg = "^[^0-9][0-9A-Za-z\\_\\:\\.\\$]+"
