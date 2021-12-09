@@ -116,6 +116,45 @@ func WriteLabel(arg1 string) string {
 	return "(" + arg1 + ")\r\n"
 }
 
+func WriteInit() string {
+	return ""
+}
+
+func WriteGoTo(label string) string {
+	match, _ := regexp.MatchString(common.LabelReg, label)
+
+	if !match {
+		log.Fatal("label 格式错误")
+	}
+
+	return "@" + label + "\r\n" +
+		"0;JMP\r\n"
+}
+
+func WriteIf(label string) string {
+	match, _ := regexp.MatchString(common.LabelReg, label)
+
+	if !match {
+		log.Fatal("label 格式错误")
+	}
+
+	return arithmeticTemplateOne() +
+		"@" + label + "\r\n" +
+		"D;JNE\r\n"
+}
+
+func WriteCall() string {
+	return ""
+}
+
+func WriteReturn() string {
+	return ""
+}
+
+func WriteFunction() string {
+	return ""
+}
+
 // add、sub、or
 func arithmeticTemplateOne() string {
 	return "@SP\r\n" +

@@ -51,6 +51,8 @@ func advance(command, filename string) string {
 		return codewriter.WritePushPop(argOne, argTwo, common.Push, filename)
 	case common.Label:
 		return codewriter.WriteLabel(argOne)
+	case common.If:
+		return codewriter.WriteIf(argOne)
 	}
 
 	return ""
@@ -77,7 +79,7 @@ func commandType(cmd string) common.CommandType {
 		return common.Call
 	} else if strings.Contains(cmd, "if") {
 		return common.If
-	} else if utils.Contains(aTypes, cmd[:4]) {
+	} else if utils.Contains(aTypes, cmd[:3]) {
 		return common.Arithmetic
 	}
 	log.Fatal("未知命令")
