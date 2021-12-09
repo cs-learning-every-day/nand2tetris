@@ -99,6 +99,12 @@ A=M
 M=D
 @SP
 M=M+1
+@SP
+AM=M-1
+D=M
+A=A-1
+@LOOP_START
+D;JNE
 @LCL
 D=M
 @0

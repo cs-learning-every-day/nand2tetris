@@ -138,7 +138,9 @@ func WriteIf(label string) string {
 		log.Fatal("label 格式错误")
 	}
 
-	return arithmeticTemplateOne() +
+	return "@SP\r\n" +
+		"AM=M-1\r\n" +
+		"D=M\r\n" +
 		"@" + label + "\r\n" +
 		"D;JNE\r\n"
 }

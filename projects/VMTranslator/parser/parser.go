@@ -53,6 +53,8 @@ func advance(command, filename string) string {
 		return codewriter.WriteLabel(argOne)
 	case common.If:
 		return codewriter.WriteIf(argOne)
+	case common.GoTo:
+		return codewriter.WriteGoTo(argOne)
 	}
 
 	return ""
@@ -71,14 +73,14 @@ func commandType(cmd string) common.CommandType {
 		return common.Pop
 	} else if strings.Contains(cmd, "label") {
 		return common.Label
+	} else if strings.Contains(cmd, "if-goto") {
+		return common.If
 	} else if strings.Contains(cmd, "goto") {
 		return common.GoTo
 	} else if strings.Contains(cmd, "function") {
 		return common.Function
 	} else if strings.Contains(cmd, "call") {
 		return common.Call
-	} else if strings.Contains(cmd, "if") {
-		return common.If
 	} else if utils.Contains(aTypes, cmd[:3]) {
 		return common.Arithmetic
 	}
