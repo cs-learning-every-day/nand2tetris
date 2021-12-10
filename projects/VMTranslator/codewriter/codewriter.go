@@ -66,9 +66,16 @@ func WritePushPop(arg1, arg2 string, cmdType common.CommandType, filename string
 		} else if argArea == "this" {
 			output = pushTemplate("THIS", arg2, false)
 		} else if argArea == "temp" {
-			tmp, _ := strconv.Atoi(arg2)
-			tmp += 5
-			output = pushTemplate("R5", strconv.Itoa(tmp), false)
+			output = "@R5\r\n" +
+				"D=A\r\n" +
+				"@" + arg2 + "\r\n" +
+				"A=D+A\r\n" +
+				"D=M\r\n" +
+				"@SP\r\n" +
+				"A=M\r\n" +
+				"M=D\r\n" +
+				"@SP\r\n" +
+				"M=M+1\r\n"
 		} else if argArea == "local" {
 			output = pushTemplate("LCL", arg2, false)
 		} else if argArea == "argument" {
@@ -94,9 +101,18 @@ func WritePushPop(arg1, arg2 string, cmdType common.CommandType, filename string
 		} else if argArea == "this" {
 			output = popTemplate("THIS", arg2, false)
 		} else if argArea == "temp" {
-			tmp, _ := strconv.Atoi(arg2)
-			tmp += 5
-			output = popTemplate("R5", strconv.Itoa(tmp), false)
+			output = "@R5\r\n" +
+				"D=A\r\n" +
+				"@" + arg2 + "\r\n" +
+				"D=D+A\r\n" +
+				"@R13\r\n" +
+				"M=D\r\n" +
+				"@SP\r\n" +
+				"AM=M-1\r\n" +
+				"D=M\r\n" +
+				"@R13\r\n" +
+				"A=M\r\n" +
+				"M=D\r\n"
 		} else if argArea == "local" {
 			output = popTemplate("LCL", arg2, false)
 		} else if argArea == "argument" {

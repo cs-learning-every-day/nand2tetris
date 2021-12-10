@@ -120,8 +120,8 @@ M=D
 @SP
 M=M+1
 @R5
-D=M
-@11
+D=A
+@6
 D=D+A
 @R13
 M=D
@@ -202,8 +202,8 @@ D=M
 A=A-1
 M=M-D
 @R5
-D=M
-@11
+D=A
+@6
 A=D+A
 D=M
 @SP

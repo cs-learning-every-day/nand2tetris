@@ -38,6 +38,8 @@ func hasMoreCommands(scanner *bufio.Scanner) bool {
 
 func advance(command, filename string) string {
 
+	command = removeComment(command)
+
 	cmdType := commandType(command)
 	argOne := arg1(command, cmdType)
 	argTwo := arg2(command, cmdType)
@@ -103,6 +105,14 @@ func commandType(cmd string) common.CommandType {
 	}
 	log.Fatal("未知命令")
 	return common.Nil
+}
+
+func removeComment(cmd string) string {
+	index := strings.Index(cmd, "//")
+	if index == -1 {
+		return cmd
+	}
+	return cmd[:index]
 }
 
 func arg1(cmd string, cmdType common.CommandType) string {
