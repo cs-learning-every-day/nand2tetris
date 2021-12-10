@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 )
 
@@ -55,6 +56,20 @@ func advance(command, filename string) string {
 		return codewriter.WriteIf(argOne)
 	case common.GoTo:
 		return codewriter.WriteGoTo(argOne)
+	case common.Return:
+		return codewriter.WriteReturn()
+	case common.Function:
+		numLocal, err := strconv.Atoi(argTwo)
+		if err != nil {
+			log.Fatalf("function %s %s 参数格式错误\n", argOne, argTwo)
+		}
+		return codewriter.WriteFunction(argOne, numLocal)
+	case common.Call:
+		argNum, err := strconv.Atoi(argTwo)
+		if err != nil {
+			log.Fatalf("call %s %s 数格式错误\n", argOne, argTwo)
+		}
+		return codewriter.WriteCall(argOne, argNum)
 	}
 
 	return ""
@@ -81,7 +96,9 @@ func commandType(cmd string) common.CommandType {
 		return common.Function
 	} else if strings.Contains(cmd, "call") {
 		return common.Call
-	} else if utils.Contains(aTypes, cmd[:3]) {
+	} else if strings.Contains(cmd, "return") {
+		return common.Return
+	} else if utils.Contains(aTypes, cmd) {
 		return common.Arithmetic
 	}
 	log.Fatal("未知命令")

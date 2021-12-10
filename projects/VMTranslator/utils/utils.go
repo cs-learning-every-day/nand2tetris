@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 )
 
 // 遍历目标目录，不遍历子目录
@@ -21,7 +22,7 @@ func PrintDirectoryFilename(path string) {
 
 func Contains(s []string, t string) bool {
 	for _, a := range s {
-		if a == t {
+		if strings.Contains(t, a) {
 			return true
 		}
 	}

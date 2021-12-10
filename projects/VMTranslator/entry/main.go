@@ -1,10 +1,10 @@
 package main
 
 import (
+	"VMTranslator/codewriter"
 	"VMTranslator/parser"
 	"VMTranslator/utils"
 	"io/fs"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -20,24 +20,27 @@ func checkPathValid(path string) {
 	defer file.Close()
 }
 
-func getAllVmFiles(dirPath string) []fs.FileInfo {
-	files, err := ioutil.ReadDir(dirPath)
+func getAllVmFilePath(dirPath string) ([]string, error) {
+	var output []string
 
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	res := make([]fs.FileInfo, 0)
-	for _, file := range files {
-		if strings.HasSuffix(file.Name(), ".vm") {
-			res = append(res, file)
+	err := filepath.Walk(dirPath, func(path string, info fs.FileInfo, err error) error {
+		// 跳过不是vm文件类型的
+		suffixIdx := strings.LastIndex(path, ".vm")
+		if suffixIdx < 0 {
+			return nil
 		}
-	}
-	return res
+
+		if !info.IsDir() {
+			output = append(output, path)
+		}
+		return nil
+	})
+
+	return output, err
 }
 
 // sourcePath肯定是.vm文件
-func createAsmFile(sourcePath string) {
+func createAsmWithSingleFile(sourcePath string) {
 
 	suffixIdx := strings.LastIndex(sourcePath, ".vm")
 	targetPath := sourcePath[:suffixIdx] + ".asm"
@@ -52,17 +55,47 @@ func createAsmFile(sourcePath string) {
 	contents := parser.Parse(sourceFile)
 
 	//fmt.Println(targetPath, ": ", contents)
-	targetFile, err := os.Create(targetPath)
+	createFileWithContents(targetPath, contents)
+}
+
+func createAsmWithMultipileFile(dirPath, filename string) {
+
+	var contents []string
+
+	paths, err2 := getAllVmFilePath(dirPath)
+	if err2 != nil {
+		log.Fatalln("getAllVmFilePath error")
+	}
+
+	if len(paths) == 0 {
+		log.Fatal("该目录下，没有vm文件！")
+	}
+
+	contents = append(contents, codewriter.WriteInit())
+	for _, path := range paths {
+		sourceFile, err := os.Open(path)
+		if err != nil {
+			log.Fatalf("open failed (%s)\n", path)
+		}
+		contents = append(contents, parser.Parse(sourceFile)...)
+		sourceFile.Close()
+	}
+
+	targetPath := dirPath + "/" + filename + ".asm"
+	createFileWithContents(targetPath, contents)
+}
+
+func createFileWithContents(path string, contents []string) {
+	file, err := os.Create(path)
 	if err != nil {
 		log.Fatalln("create failed")
 	}
 
-	defer targetFile.Close()
+	defer file.Close()
 
 	for _, line := range contents {
-		targetFile.WriteString(line)
+		file.WriteString(line)
 	}
-
 }
 
 func visitDirectory(dirPath, filename string) {
@@ -75,7 +108,7 @@ func visitDirectory(dirPath, filename string) {
 			}
 
 			if !info.IsDir() {
-				createAsmFile(path)
+				createAsmWithSingleFile(path)
 			}
 			return nil
 		})
@@ -84,11 +117,8 @@ func visitDirectory(dirPath, filename string) {
 			log.Fatal(err)
 		}
 	} else {
-		files := getAllVmFiles(dirPath)
-		if len(files) == 0 {
-			log.Fatal("该目录下，没有vm文件！")
-		}
-		// TODO: 整合所有vm文件
+		// 整合所有vm文件
+		createAsmWithMultipileFile(dirPath, filename)
 	}
 
 }
@@ -99,7 +129,7 @@ func run(path, filename string) {
 	if utils.IsDirectory(path) {
 		visitDirectory(path, filename)
 	} else {
-		createAsmFile(path)
+		createAsmWithSingleFile(path)
 	}
 }
 

@@ -9,6 +9,7 @@ import (
 )
 
 var index = 0
+var labelCount = 0
 
 func WriteArithmetic(cmdName string) string {
 	if cmdName == "add" {
@@ -117,7 +118,12 @@ func WriteLabel(arg1 string) string {
 }
 
 func WriteInit() string {
-	return ""
+	output := "@256\r\n" +
+		"D=A\r\n" +
+		"@SP\r\n" +
+		"M=D\r\n"
+	output += WriteCall("Sys.init", 0)
+	return output
 }
 
 func WriteGoTo(label string) string {
@@ -145,16 +151,85 @@ func WriteIf(label string) string {
 		"D;JNE\r\n"
 }
 
-func WriteCall() string {
-	return ""
+func WriteCall(functionName string, numArgs int) string {
+	label := "RETURN_ADDRESS_CALL_" + functionName + strconv.Itoa(labelCount)
+	labelCount++
+
+	output := "@" + label + "\r\n" +
+		"D=A\r\n" +
+		"@SP\r\n" +
+		"A=M\r\n" +
+		"M=D\r\n" +
+		"@SP\r\n" +
+		"M=M+1\r\n" // push return address
+
+	output += pushTemplate("LCL", "0", true)  // push LCL
+	output += pushTemplate("ARG", "0", true)  // push ARG
+	output += pushTemplate("THIS", "0", true) // push THIS
+	output += pushTemplate("THAT", "0", true) // push THAT
+
+	output += "@SP\r\n" +
+		"D=M\r\n" +
+		"@5\r\n" +
+		"D=D-A\r\n" +
+		"@" + strconv.Itoa(numArgs) + "\r\n" +
+		"D=D-A\r\n" +
+		"@ARG\r\n" +
+		"M=D\r\n" + // ARG = SP - n - 5
+		"@SP\r\n" +
+		"D=M\r\n" +
+		"@LCL\r\n" +
+		"M=D\r\n" + // LCL = SP
+		"@" + functionName + "\r\n" +
+		"0;JMP\r\n" + // goto f
+		"(" + label + ")\r\n" // (return-address)
+	return output
 }
 
 func WriteReturn() string {
-	return ""
+	return "@LCL\r\n" +
+		"D=M\r\n" +
+		"@R13\r\n" +
+		"M=D\r\n" +
+		"@5\r\n" +
+		"A=D-A\r\n" +
+		"D=M\r\n" +
+		"@R14\r\n" + // 保存返回地址
+		"M=D\r\n" +
+		"@SP\r\n" +
+		"AM=M-1\r\n" +
+		"D=M\r\n" +
+		"@ARG\r\n" +
+		"A=M\r\n" +
+		"M=D\r\n" + // *ARG = pop()
+		"@ARG\r\n" +
+		"D=M\r\n" +
+		"@SP\r\n" +
+		"M=D+1\r\n" + // SP = ARG + 1
+		preFrameTemplate("THAT") +
+		preFrameTemplate("THIS") +
+		preFrameTemplate("ARG") +
+		preFrameTemplate("LCL") +
+		"@R14\r\n" +
+		"A=M\r\n" +
+		"0;JMP\r\n"
 }
 
-func WriteFunction() string {
-	return ""
+func WriteFunction(functionName string, numLocals int) string {
+	output := "(" + functionName + ")\r\n"
+	for i := 0; i < numLocals; i++ {
+		output += WritePushPop("constant", "0", common.Push, "")
+	}
+	return output
+}
+
+func preFrameTemplate(position string) string {
+	return "@R13\r\n" +
+		"D=M-1\r\n" +
+		"AM=D\r\n" +
+		"D=M\r\n" +
+		"@" + position + "\r\n" +
+		"M=D\r\n"
 }
 
 // add、sub、or
