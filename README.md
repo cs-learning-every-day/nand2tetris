@@ -12,7 +12,7 @@
 
 ### Part II
 - [x] Project 7: VM I: Stack Arithmetic
-- [ ] Project 8: VM II: Program Control
+- [x] Project 8: VM II: Program Control
 - [ ] Project 9: High-Level Language
 - [ ] Project 10: Compiler I: Syntax Analysis
 - [ ] Project 11: Compiler II: Code Generation
