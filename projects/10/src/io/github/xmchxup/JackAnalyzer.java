@@ -28,8 +28,16 @@ public class JackAnalyzer {
                 jackFiles.add(file);
             }
 
-            for (File jackFile : jackFiles) {
-                System.out.println(jackFile.getName());
+            String fileOutputPath = "";
+            String tokenFileOutputPath = "";
+
+            for (File f : jackFiles) {
+                String p = f.getAbsolutePath();
+                String pathWithoutSuffix = p.substring(0, p.lastIndexOf("."));
+                fileOutputPath = pathWithoutSuffix + ".xml";
+                tokenFileOutputPath = pathWithoutSuffix + "T.xml";
+
+                new JackTokenizer(f).Generate(tokenFileOutputPath);
             }
         }
     }
