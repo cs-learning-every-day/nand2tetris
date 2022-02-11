@@ -34,10 +34,15 @@ public class JackAnalyzer {
             for (File f : jackFiles) {
                 String p = f.getAbsolutePath();
                 String pathWithoutSuffix = p.substring(0, p.lastIndexOf("."));
-                fileOutputPath = pathWithoutSuffix + ".xml";
-                tokenFileOutputPath = pathWithoutSuffix + "T.xml";
+                fileOutputPath = pathWithoutSuffix + "t.xml";
+                tokenFileOutputPath = pathWithoutSuffix + "tT.xml";
 
-                new JackTokenizer(f).Generate(tokenFileOutputPath);
+                var compilationEngine = new CompilationEngine(f, new File(fileOutputPath),
+                        new File(tokenFileOutputPath));
+                compilationEngine.compileClass();
+
+                System.out.println("File created : " + fileOutputPath);
+                System.out.println("File created : " + tokenFileOutputPath);
             }
         }
     }

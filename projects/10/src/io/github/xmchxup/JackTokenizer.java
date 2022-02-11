@@ -5,9 +5,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -16,38 +14,6 @@ import java.util.regex.Pattern;
  * @author huayang (sunhuayangak47@gmail.com)
  */
 public class JackTokenizer {
-    protected enum KeywordType {
-        CLASS,
-        METHOD,
-        INT,
-        FUNCTION,
-        BOOLEAN,
-        CONSTRUCTOR,
-        CHAR,
-        VOID,
-        VAR,
-        STATIC,
-        FIELD,
-        LET,
-        DO,
-        IF,
-        ELSE,
-        WHILE,
-        RETURN,
-        TRUE,
-        FALSE,
-        NULL,
-        THIS;
-    }
-
-    protected enum TokenType {
-        KEYWORD,
-        SYMBOL,
-        IDENTIFIER,
-        INT_CONST,
-        STRING_CONST;
-    }
-
     private Pattern tokenPatterns;
     private String keywordReg;
     private String symbolReg;
@@ -57,18 +23,24 @@ public class JackTokenizer {
 
     private File inputFile;
     private String currentToken;
+    private TokenType currentTokenType;
     private List<String> tokens;
-
-    private final Map<String, KeywordType> keywordTypeMap = new HashMap<>();
-
-    static {
-
-    }
+    private int pToken; // 未处理的token的索引
 
     JackTokenizer(File inputFile) {
+        initRegs();
+
         this.inputFile = inputFile;
         currentToken = "";
-        initRegs();
+        pToken = 0;
+
+        String lines = getInputFileLines();
+
+        Matcher m = tokenPatterns.matcher(lines);
+        tokens = new ArrayList<>();
+        while (m.find()) {
+            tokens.add(m.group());
+        }
     }
 
     private void initRegs() {
@@ -115,21 +87,6 @@ public class JackTokenizer {
                 idReg);
     }
 
-    File Generate(String outputPath) {
-        String lines = getInputFileLines();
-
-        Matcher m = tokenPatterns.matcher(lines);
-        tokens = new ArrayList<>();
-        while (m.find()) {
-            tokens.add(m.group());
-            System.out.println(m.group());
-        }
-
-
-        File outputFile = new File(outputPath);
-        return outputFile;
-    }
-
     // 获取文件行 并且移除多余的空格和注释
     private String getInputFileLines() {
         String res = "";
@@ -173,17 +130,39 @@ public class JackTokenizer {
         return line;
     }
 
-
     boolean hasMoreTokens() {
-        return false;
+        return pToken < tokens.size();
     }
 
     void advance() {
+        if (hasMoreTokens()) {
+            currentToken = tokens.get(pToken);
+            pToken++;
+        } else {
+            throw new IllegalStateException("No more tokens");
+        }
 
+        if (currentToken.matches(keywordReg)) {
+            currentTokenType = TokenType.KEYWORD;
+        } else if (currentToken.matches(symbolReg)) {
+            currentTokenType = TokenType.SYMBOL;
+        } else if (currentToken.matches(intReg)) {
+            currentTokenType = TokenType.INT_CONST;
+        } else if (currentToken.matches(strReg)) {
+            currentTokenType = TokenType.STRING_CONST;
+        } else if (currentToken.matches(idReg)) {
+            currentTokenType = TokenType.IDENTIFIER;
+        } else {
+            throw new IllegalArgumentException("Unknown token: " + currentToken);
+        }
+    }
+
+    String getCurrentToken() {
+        return currentToken;
     }
 
     TokenType tokenType() {
-        return TokenType.IDENTIFIER;
+        return currentTokenType;
     }
 
     KeywordType keyword() {
@@ -196,7 +175,7 @@ public class JackTokenizer {
 
     char symbol() {
         if (tokenType() == TokenType.SYMBOL) {
-            return ' ';
+            return currentToken.charAt(0);
         } else {
             throw new IllegalStateException("token type is not a SYMBOL!");
         }
@@ -204,7 +183,7 @@ public class JackTokenizer {
 
     String identifier() {
         if (tokenType() == TokenType.IDENTIFIER) {
-            return null;
+            return currentToken;
         } else {
             throw new IllegalStateException("token type is not a IDENTIFIER!");
         }
@@ -212,7 +191,7 @@ public class JackTokenizer {
 
     int intVal() {
         if (tokenType() == TokenType.INT_CONST) {
-            return 0;
+            return Integer.parseInt(currentToken);
         } else {
             throw new IllegalStateException("token type is not a INT_CONST!");
         }
@@ -220,7 +199,7 @@ public class JackTokenizer {
 
     String stringVal() {
         if (tokenType() == TokenType.STRING_CONST) {
-            return null;
+            return currentToken.substring(1, currentToken.length() - 1);
         } else {
             throw new IllegalStateException("token type is not a STRING_CONST!");
         }
