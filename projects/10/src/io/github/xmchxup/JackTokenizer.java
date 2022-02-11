@@ -4,14 +4,19 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 /**
  * @author huayang (sunhuayangak47@gmail.com)
  */
 public class JackTokenizer {
-    private enum KeywordType {
+    protected enum KeywordType {
         CLASS,
         METHOD,
         INT,
@@ -35,7 +40,7 @@ public class JackTokenizer {
         THIS;
     }
 
-    private enum TokenType {
+    protected enum TokenType {
         KEYWORD,
         SYMBOL,
         IDENTIFIER,
@@ -43,22 +48,91 @@ public class JackTokenizer {
         STRING_CONST;
     }
 
+    private Pattern tokenPatterns;
+    private String keywordReg;
+    private String symbolReg;
+    private String intReg;
+    private String strReg;
+    private String idReg;
+
     private File inputFile;
+    private String currentToken;
+    private List<String> tokens;
+
+    private final Map<String, KeywordType> keywordTypeMap = new HashMap<>();
+
+    static {
+
+    }
 
     JackTokenizer(File inputFile) {
         this.inputFile = inputFile;
+        currentToken = "";
+        initRegs();
+    }
+
+    private void initRegs() {
+        StringBuilder sb = new StringBuilder();
+
+        for (KeywordType v : KeywordType.values()) {
+            sb.append(v.toString().toLowerCase())
+                    .append("|");
+        }
+
+        keywordReg = sb.toString();
+        sb = new StringBuilder();
+        sb.append("[")
+                .append("\\+")
+                .append("\\-")
+                .append("\\*")
+                .append("\\/")
+                .append("\\(")
+                .append("\\)")
+                .append("\\[")
+                .append("\\]")
+                .append("\\{")
+                .append("\\}")
+                .append("\\.")
+                .append("\\,")
+                .append("\\&")
+                .append("\\;")
+                .append("\\~")
+                .append("\\|")
+                .append("\\>")
+                .append("\\<")
+                .append("\\=")
+                .append("]");
+
+        symbolReg = sb.toString();
+        intReg = "[0-9]+";
+        strReg = "\"[^\"]*\"";
+        idReg = "[\\w]+";
+
+        tokenPatterns = Pattern.compile(keywordReg +
+                symbolReg + "|" +
+                intReg + "|" +
+                strReg + "|" +
+                idReg);
     }
 
     File Generate(String outputPath) {
+        String lines = getInputFileLines();
 
-        List<String> fileLines = getInputFileLines();
+        Matcher m = tokenPatterns.matcher(lines);
+        tokens = new ArrayList<>();
+        while (m.find()) {
+            tokens.add(m.group());
+            System.out.println(m.group());
+        }
+
 
         File outputFile = new File(outputPath);
         return outputFile;
     }
 
     // 获取文件行 并且移除多余的空格和注释
-    private List<String> getInputFileLines() {
+    private String getInputFileLines() {
+        String res = "";
         try (BufferedReader reader = new BufferedReader(new FileReader(inputFile))) {
             String line;
             StringBuilder sb = new StringBuilder();
@@ -69,13 +143,11 @@ public class JackTokenizer {
                             .append("\n");
                 }
             }
-            String processedLines = removeBlockComments(sb.toString()).trim();
-            System.out.println(processedLines);
-
+            res = removeBlockComments(sb.toString()).trim();
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return null;
+        return res;
     }
 
     private String removeBlockComments(String lines) {
@@ -116,7 +188,7 @@ public class JackTokenizer {
 
     KeywordType keyword() {
         if (tokenType() == TokenType.KEYWORD) {
-            return null;
+            return KeywordType.valueOf(currentToken.toUpperCase());
         } else {
             throw new IllegalStateException("token type is not a KEYWORD!");
         }
