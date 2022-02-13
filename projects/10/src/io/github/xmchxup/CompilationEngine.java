@@ -71,12 +71,16 @@ public class CompilationEngine {
      * 形式：(static | filed) type varName (,varName)* ;
      */
     private void compileClassVarDec() {
-        if (!isInClassScope()) {
+        tokenizer.advance();
+        // }
+        if (tokenizer.tokenType() == TokenType.SYMBOL &&
+                tokenizer.symbol() == '}') {
+            tokenizer.retreat();
             return;
         }
 
         if (tokenizer.tokenType() != TokenType.KEYWORD) {
-            error("Keywords");
+            error("keyword");
         }
 
         // is subroutine
@@ -89,7 +93,7 @@ public class CompilationEngine {
 
         if (tokenizer.keyword() != KeywordType.STATIC &&
                 tokenizer.keyword() != KeywordType.FIELD) {
-            error("static or field");
+            error("static | field");
         }
 
         tokenPrintWriter.println("<keyword> " + tokenizer.getCurrentToken() + " </keyword>");
@@ -107,10 +111,10 @@ public class CompilationEngine {
 
             // , or ;
             tokenizer.advance();
-            if (tokenizer.tokenType() != TokenType.SYMBOL &&
+            if (tokenizer.tokenType() != TokenType.SYMBOL ||
                     (tokenizer.symbol() != ',' &&
-                            tokenizer.symbol() != ',')) {
-                error("',' or ';'");
+                            tokenizer.symbol() != ';')) {
+                error(", or ;");
             }
 
             tokenPrintWriter.println("<symbol> " + tokenizer.symbol() + " </symbol>");
@@ -119,7 +123,7 @@ public class CompilationEngine {
     }
 
     /**
-     * int、bool、char、className
+     * int、boolean、char、className
      */
     private void compileType() {
         tokenizer.advance();
@@ -148,61 +152,385 @@ public class CompilationEngine {
      * 形式：(constructor | function | method) (void, type) functionName(paramList) {}
      */
     private void compileSubroutine() {
-        if (!isInClassScope()) {
+        tokenizer.advance();
+        // }
+        if (tokenizer.tokenType() == TokenType.SYMBOL &&
+                tokenizer.symbol() == '}') {
+            tokenizer.retreat();
             return;
         }
+
+        if (tokenizer.tokenType() != TokenType.KEYWORD ||
+                (tokenizer.keyword() != KeywordType.CONSTRUCTOR &&
+                        tokenizer.keyword() != KeywordType.FUNCTION &&
+                        tokenizer.keyword() != KeywordType.METHOD)) {
+            error("construct | function | method");
+        }
+
+        tokenPrintWriter.println("<keyword> " + tokenizer.getCurrentToken() + " </keyword>");
+
+        // return type
+        tokenizer.advance();
+        if (tokenizer.tokenType() == TokenType.KEYWORD &&
+                tokenizer.keyword() == KeywordType.VOID) { // Void
+            tokenPrintWriter.println("<keyword> " + tokenizer.getCurrentToken() + " </keyword>");
+        } else {
+            tokenizer.retreat();
+            compileType();
+        }
+
+        // name
+        tokenizer.advance();
+        if (tokenizer.tokenType() != TokenType.IDENTIFIER) {
+            error("subroutineName");
+        }
+        tokenPrintWriter.println("<identifier> " + tokenizer.identifier() + " </identifier>");
+
+        // (
+        requireSymbol('(');
+        // parameter list
+        compileParameterList();
+        // )
+        requireSymbol(')');
+
+        // {
+        requireSymbol('{');
+        // function body
+        compileVarDec();
+        compileStatements();
+        // }
+        requireSymbol('}');
+
+        // next
+        compileSubroutine();
     }
 
     // 编译参数列表（可能为空）, 不包含括号"( )"
     private void compileParameterList() {
+        tokenizer.advance();
+        if (tokenizer.tokenType() == TokenType.SYMBOL &&
+                tokenizer.symbol() == ')') {
+            tokenizer.retreat();
+            return;
+        }
 
+        tokenizer.retreat();
+
+        do {
+            // type
+            compileType();
+            // varName
+            tokenizer.advance();
+            if (tokenizer.tokenType() != TokenType.IDENTIFIER) {
+                error("identifier");
+            }
+            tokenPrintWriter.println("<identifier> " + tokenizer.identifier() + " </identifier>");
+
+            // , or )
+            tokenizer.advance();
+            if (tokenizer.tokenType() != TokenType.SYMBOL ||
+                    (tokenizer.symbol() != ',' &&
+                            tokenizer.symbol() != ')')) {
+                error(", or )");
+            }
+
+            if (tokenizer.symbol() == ',') {
+                tokenPrintWriter.println("<symbol> " + tokenizer.symbol() + " </symbol>");
+            } else {
+                tokenizer.retreat();
+                break;
+            }
+        } while (true);
+    }
+
+    /**
+     * 编译一系列语句，不包含大括号"{}"
+     * keyword: let、if、while、do、return
+     */
+    private void compileStatements() {
+        tokenizer.advance();
+        if (tokenizer.tokenType() == TokenType.SYMBOL &&
+                tokenizer.symbol() == '}') {
+            tokenizer.retreat();
+            return;
+        }
+
+        if (tokenizer.tokenType() != TokenType.KEYWORD) {
+            error("keyword");
+        }
+        switch (tokenizer.keyword()) {
+            case LET:
+                compileLet();
+                break;
+            case IF:
+                compileIf();
+                break;
+            case WHILE:
+                compileWhile();
+                break;
+            case DO:
+                compileDo();
+                break;
+            case RETURN:
+                compileReturn();
+                break;
+            default:
+                error("let | if | while | do | return");
+        }
+        compileStatements();
     }
 
     private void compileVarDec() {
+        tokenizer.advance();
+        if (tokenizer.tokenType() != TokenType.KEYWORD ||
+                tokenizer.keyword() != KeywordType.VAR) {
+            tokenizer.retreat();
+            return;
+        }
+        tokenPrintWriter.println("<keyword> " + tokenizer.getCurrentToken() + " </keyword>");
 
-    }
+        // type
+        compileType();
 
-    // 编译一系列语句，不包含大括号"{}"
-    private void compileStatements() {
+        do {
+            // varName
+            tokenizer.advance();
+            if (tokenizer.tokenType() != TokenType.IDENTIFIER) {
+                error("varName");
+            }
+            tokenPrintWriter.println("<identifier> " + tokenizer.identifier() + " </identifier>");
 
+            // , or ;
+            tokenizer.advance();
+            if (tokenizer.tokenType() != TokenType.SYMBOL ||
+                    (tokenizer.symbol() != ',' &&
+                            tokenizer.symbol() != ';')) {
+                error("',' or ';'");
+            }
+
+            tokenPrintWriter.println("<symbol> " + tokenizer.symbol() + " </symbol>");
+        } while (tokenizer.symbol() != ';');
+
+        // next
+        compileVarDec();
     }
 
     private void compileDo() {
+        tokenPrintWriter.println("<keyword> " + tokenizer.getCurrentToken() + " </keyword>");
+        compileCall();
+        // ;
+        requireSymbol(';');
+    }
 
+    private void compileCall() {
+        tokenizer.advance();
+        if (tokenizer.tokenType() != TokenType.IDENTIFIER) {
+            error("identifier");
+        }
+        tokenPrintWriter.println("<identifier> " + tokenizer.identifier() + " </identifier>");
+
+        tokenizer.advance();
+        if (tokenizer.tokenType() == TokenType.SYMBOL &&
+                tokenizer.symbol() == '.') {
+            tokenPrintWriter.println("<symbol> " + tokenizer.symbol() + " </symbol>");
+
+            tokenizer.advance();
+            if (tokenizer.tokenType() != TokenType.IDENTIFIER) {
+                error("identifier");
+            }
+            tokenPrintWriter.println("<identifier> " + tokenizer.identifier() + " </identifier>");
+
+            requireSymbol('(');
+            compileExpressionList();
+            requireSymbol(')');
+        } else if (tokenizer.tokenType() == TokenType.SYMBOL &&
+                tokenizer.symbol() == '(') {
+            tokenPrintWriter.println("<symbol> " + tokenizer.symbol() + " </symbol>");
+            compileExpressionList();
+            requireSymbol(')');
+        } else {
+            error(". | (");
+        }
     }
 
     private void compileLet() {
+        tokenPrintWriter.println("<keyword> " + tokenizer.getCurrentToken() + " </keyword>");
 
+        // varName
+        tokenizer.advance();
+        if (tokenizer.tokenType() != TokenType.IDENTIFIER) {
+            error("varName");
+        }
+        tokenPrintWriter.println("<identifier> " + tokenizer.identifier() + " </identifier>");
+
+        // [ or =
+        tokenizer.advance();
+        if (tokenizer.tokenType() != TokenType.SYMBOL ||
+                (tokenizer.symbol() != '[' && tokenizer.symbol() != '=')) {
+            error("[ or =");
+        }
+
+        // []
+        if (tokenizer.symbol() == '[') {
+            tokenPrintWriter.println("<symbol> [ </symbol>");
+            compileExpression();
+            requireSymbol(']');
+            tokenizer.advance();
+        }
+
+        // =
+        tokenPrintWriter.println("<symbol> " + tokenizer.symbol() + " </symbol>");
+        compileExpression();
+        requireSymbol(';');
     }
-
 
     private void compileWhile() {
+        tokenPrintWriter.println("<keyword> " + tokenizer.getCurrentToken() + " </keyword>");
 
+        requireSymbol('(');
+        compileExpression();
+        requireSymbol(')');
+        requireSymbol('{');
+        compileStatements();
+        requireSymbol('}');
     }
-
 
     private void compileReturn() {
+        tokenPrintWriter.println("<keyword> " + tokenizer.getCurrentToken() + " </keyword>");
 
+        tokenizer.advance();
+        if (tokenizer.tokenType() == TokenType.SYMBOL &&
+                tokenizer.symbol() == ';') {
+            tokenPrintWriter.println("<symbol> " + tokenizer.symbol() + " </symbol>");
+            return;
+        }
+
+        tokenizer.retreat();
+        compileExpression();
+        requireSymbol(';');
     }
-
 
     private void compileIf() {
+        tokenPrintWriter.println("<keyword> " + tokenizer.getCurrentToken() + " </keyword>");
 
+        requireSymbol('(');
+        compileExpression();
+        requireSymbol(')');
+        requireSymbol('{');
+        compileStatements();
+        requireSymbol('}');
+
+        // else
+        tokenizer.advance();
+        if (tokenizer.tokenType() == TokenType.KEYWORD &&
+                tokenizer.keyword() == KeywordType.ELSE) {
+            tokenPrintWriter.println("<keyword> " + tokenizer.getCurrentToken() + " </keyword>");
+            requireSymbol('{');
+            compileStatements();
+            requireSymbol('}');
+        } else {
+            tokenizer.retreat();
+        }
     }
 
+    /***
+     * 由,分隔的表达式列表
+     * do Screen.drawRectangle(x, y, x + size, y + size);
+     */
+    private void compileExpressionList() {
+        tokenizer.advance();
+        if (tokenizer.tokenType() == TokenType.SYMBOL &&
+                tokenizer.symbol() == ')') {
+            tokenizer.retreat();
+        } else {
+            tokenizer.retreat();
+            compileExpression();
+            do {
+                tokenizer.advance();
+                if (tokenizer.tokenType() == TokenType.SYMBOL &&
+                        tokenizer.symbol() == ',') {
+                    tokenPrintWriter.println("<symbol> , </symbol>");
+                    compileExpression();
+                } else {
+                    tokenizer.retreat();
+                    break;
+                }
+            } while (true);
+        }
+    }
 
     private void compileExpression() {
-
+        // example: x + 2
+        compileTerm();
+        do {
+            tokenizer.advance();
+            if (tokenizer.tokenType() == TokenType.SYMBOL &&
+                    tokenizer.isOperator()) {
+                if (tokenizer.symbol() == '>') {
+                    tokenPrintWriter.println("<symbol> &gt; </symbol>");
+                } else if (tokenizer.symbol() == '<') {
+                    tokenPrintWriter.println("<symbol> &lt; </symbol>");
+                } else if (tokenizer.symbol() == '&') {
+                    tokenPrintWriter.println("<symbol> &amp; </symbol>");
+                } else {
+                    tokenPrintWriter.println("<symbol> " + tokenizer.symbol() + " </symbol>");
+                }
+                //term
+                compileTerm();
+            } else {
+                tokenizer.retreat();
+                break;
+            }
+        } while (true);
     }
-
 
     private void compileTerm() {
+        tokenizer.advance();
+        if (tokenizer.tokenType() == TokenType.IDENTIFIER) {
+            String tmpId = tokenizer.identifier();
 
-    }
-
-
-    private void compileExpressionList() {
-
+            tokenizer.advance();
+            if (tokenizer.tokenType() == TokenType.SYMBOL &&
+                    tokenizer.symbol() == '[') { // array
+                tokenPrintWriter.println("<identifier> " + tmpId + " </identifier>");
+                tokenPrintWriter.println("<symbol> [ </symbol>");
+                compileExpression();
+                requireSymbol(']');
+            } else if (tokenizer.tokenType() == TokenType.SYMBOL &&
+                    ((tokenizer.symbol() == '(' || tokenizer.symbol() == '.'))) { // function call
+                tokenizer.retreat();
+                tokenizer.retreat();
+                compileCall();
+            } else { // var name
+                tokenPrintWriter.println("<identifier> " + tmpId + " </identifier>");
+                tokenizer.retreat();
+            }
+        } else {
+            if (tokenizer.tokenType() == TokenType.INT_CONST) {
+                tokenPrintWriter.println("<integerConstant> " + tokenizer.intVal() + " </integerConstant>");
+            } else if (tokenizer.tokenType() == TokenType.STRING_CONST) {
+                tokenPrintWriter.println("<stringConstant> " + tokenizer.stringVal() + " </stringConstant>");
+            } else if (tokenizer.tokenType() == TokenType.KEYWORD &&
+                    (tokenizer.keyword() == KeywordType.TRUE ||
+                            tokenizer.keyword() == KeywordType.FALSE ||
+                            tokenizer.keyword() == KeywordType.NULL ||
+                            tokenizer.keyword() == KeywordType.THIS)) {
+                tokenPrintWriter.println("<keyword> " + tokenizer.getCurrentToken() + " </keyword>");
+            } else if (tokenizer.tokenType() == TokenType.SYMBOL && tokenizer.symbol() == '(') {
+                tokenPrintWriter.println("<symbol> ( </symbol>");
+                //expression
+                compileExpression();
+                //')'
+                requireSymbol(')');
+            } else if (tokenizer.tokenType() == TokenType.SYMBOL &&
+                    (tokenizer.symbol() == '-' || tokenizer.symbol() == '~')) {
+                tokenPrintWriter.println("<symbol> " + tokenizer.symbol() + " </symbol>");
+                //term
+                compileTerm();
+            } else {
+                error("integerConstant | stringConstant | keywordConstant | '(' expression ')'| unaryOp term");
+            }
+        }
     }
 
     private void error(String expectedToken) {
@@ -217,16 +545,5 @@ public class CompilationEngine {
             error("'" + symbol + "'");
         }
         tokenPrintWriter.println("<symbol> " + symbol + " </symbol>");
-    }
-
-    private boolean isInClassScope() {
-        tokenizer.advance();
-
-        if (tokenizer.tokenType() == TokenType.SYMBOL &&
-                tokenizer.symbol() == '}') {
-            tokenizer.retreat();
-            return false;
-        }
-        return true;
     }
 }

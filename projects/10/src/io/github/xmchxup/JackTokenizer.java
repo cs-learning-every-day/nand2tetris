@@ -5,7 +5,9 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -26,9 +28,10 @@ public class JackTokenizer {
     private TokenType currentTokenType;
     private List<String> tokens;
     private int pToken; // 未处理的token的索引
+    private Set<Character> opSet = new HashSet<>();
 
     JackTokenizer(File inputFile) {
-        initRegs();
+        init();
 
         this.inputFile = inputFile;
         currentToken = "";
@@ -43,7 +46,18 @@ public class JackTokenizer {
         }
     }
 
-    private void initRegs() {
+    private void init() {
+
+        opSet.add('+');
+        opSet.add('-');
+        opSet.add('*');
+        opSet.add('/');
+        opSet.add('&');
+        opSet.add('|');
+        opSet.add('<');
+        opSet.add('>');
+        opSet.add('=');
+
         StringBuilder sb = new StringBuilder();
 
         for (KeywordType v : KeywordType.values()) {
@@ -78,7 +92,7 @@ public class JackTokenizer {
         symbolReg = sb.toString();
         intReg = "[0-9]+";
         strReg = "\"[^\"]*\"";
-        idReg = "[\\w]+";
+        idReg = "[a-zA-Z_][\\w_]*";
 
         tokenPatterns = Pattern.compile(keywordReg +
                 symbolReg + "|" +
@@ -209,5 +223,9 @@ public class JackTokenizer {
         } else {
             throw new IllegalStateException("token type is not a STRING_CONST!");
         }
+    }
+
+    boolean isOperator() {
+        return opSet.contains(symbol());
     }
 }
