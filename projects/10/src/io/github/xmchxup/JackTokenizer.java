@@ -134,6 +134,12 @@ public class JackTokenizer {
         return pToken < tokens.size();
     }
 
+    void retreat() {
+        if (pToken > 0) {
+            pToken--;
+        }
+    }
+
     void advance() {
         if (hasMoreTokens()) {
             currentToken = tokens.get(pToken);

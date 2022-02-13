@@ -10,11 +10,11 @@ import java.io.PrintWriter;
 public class CompilationEngine {
     private PrintWriter printWriter;
     private PrintWriter tokenPrintWriter;
-    private JackTokenizer jackTokenizer;
+    private JackTokenizer tokenizer;
 
     CompilationEngine(File inFile, File outputFile, File outputTokenFile) {
         try {
-            jackTokenizer = new JackTokenizer(inFile);
+            tokenizer = new JackTokenizer(inFile);
             printWriter = new PrintWriter(outputFile);
             tokenPrintWriter = new PrintWriter(outputTokenFile);
         } catch (FileNotFoundException e) {
@@ -22,25 +22,31 @@ public class CompilationEngine {
         }
     }
 
-    // 编译整个类
+    /**
+     * 编译整个类
+     * 形式: class className {
+     * classVarDec*
+     * subroutineDec*
+     * }
+     */
     void compileClass() {
         // class
-        jackTokenizer.advance();
-        if (jackTokenizer.tokenType() != TokenType.KEYWORD ||
-                jackTokenizer.keyword() != KeywordType.CLASS) {
+        tokenizer.advance();
+        if (tokenizer.tokenType() != TokenType.KEYWORD ||
+                tokenizer.keyword() != KeywordType.CLASS) {
             error("class");
         }
 
         tokenPrintWriter.println("<tokens>");
 
-        tokenPrintWriter.println("<keyword> " + jackTokenizer.getCurrentToken() + " </keyword>");
+        tokenPrintWriter.println("<keyword> " + tokenizer.getCurrentToken() + " </keyword>");
 
         // classname
-        jackTokenizer.advance();
-        if (jackTokenizer.tokenType() != TokenType.IDENTIFIER) {
+        tokenizer.advance();
+        if (tokenizer.tokenType() != TokenType.IDENTIFIER) {
             error("classname");
         }
-        tokenPrintWriter.println("<identifier> " + jackTokenizer.getCurrentToken() + " </identifier>");
+        tokenPrintWriter.println("<identifier> " + tokenizer.getCurrentToken() + " </identifier>");
 
         // {
         requireSymbol('{');
@@ -51,7 +57,7 @@ public class CompilationEngine {
         // }
         requireSymbol('}');
 
-        if (jackTokenizer.hasMoreTokens()) {
+        if (tokenizer.hasMoreTokens()) {
             throw new IllegalStateException("Unexpected tokens");
         }
 
@@ -60,79 +66,167 @@ public class CompilationEngine {
         tokenPrintWriter.close();
     }
 
-    // 编译静态声明颧字段声明
-    void compileClassVarDec() {
+    /**
+     * 编译静态声明颧字段声明
+     * 形式：(static | filed) type varName (,varName)* ;
+     */
+    private void compileClassVarDec() {
+        if (!isInClassScope()) {
+            return;
+        }
 
+        if (tokenizer.tokenType() != TokenType.KEYWORD) {
+            error("Keywords");
+        }
+
+        // is subroutine
+        if (tokenizer.keyword() == KeywordType.CONSTRUCTOR ||
+                tokenizer.keyword() == KeywordType.FUNCTION ||
+                tokenizer.keyword() == KeywordType.METHOD) {
+            tokenizer.retreat();
+            return;
+        }
+
+        if (tokenizer.keyword() != KeywordType.STATIC &&
+                tokenizer.keyword() != KeywordType.FIELD) {
+            error("static or field");
+        }
+
+        tokenPrintWriter.println("<keyword> " + tokenizer.getCurrentToken() + " </keyword>");
+
+        compileType();
+
+
+        do {
+            // varName
+            tokenizer.advance();
+            if (tokenizer.tokenType() != TokenType.IDENTIFIER) {
+                error("identifier");
+            }
+            tokenPrintWriter.println("<identifier> " + tokenizer.identifier() + " </identifier>");
+
+            // , or ;
+            tokenizer.advance();
+            if (tokenizer.tokenType() != TokenType.SYMBOL &&
+                    (tokenizer.symbol() != ',' &&
+                            tokenizer.symbol() != ',')) {
+                error("',' or ';'");
+            }
+
+            tokenPrintWriter.println("<symbol> " + tokenizer.symbol() + " </symbol>");
+        } while (tokenizer.symbol() != ';');
+        compileClassVarDec();
     }
 
-    // 编译整个方法、函数或构造函数
-    void compileSubroutine() {
+    /**
+     * int、bool、char、className
+     */
+    private void compileType() {
+        tokenizer.advance();
+        boolean isType = false;
 
+        if (tokenizer.tokenType() == TokenType.KEYWORD &&
+                (tokenizer.keyword() == KeywordType.BOOLEAN ||
+                        tokenizer.keyword() == KeywordType.INT ||
+                        tokenizer.keyword() == KeywordType.CHAR)) {
+            isType = true;
+            tokenPrintWriter.println("<keyword> " + tokenizer.getCurrentToken() + " </keyword>");
+        }
+
+        if (tokenizer.tokenType() == TokenType.IDENTIFIER) {
+            isType = true;
+            tokenPrintWriter.println("<identifier> " + tokenizer.identifier() + " </identifier>");
+        }
+
+        if (!isType) {
+            error("int | char | boolean | className");
+        }
+    }
+
+    /**
+     * 编译整个方法、函数或构造函数
+     * 形式：(constructor | function | method) (void, type) functionName(paramList) {}
+     */
+    private void compileSubroutine() {
+        if (!isInClassScope()) {
+            return;
+        }
     }
 
     // 编译参数列表（可能为空）, 不包含括号"( )"
-    void compileParameterList() {
+    private void compileParameterList() {
 
     }
 
-    void compileVarDec() {
+    private void compileVarDec() {
 
     }
 
     // 编译一系列语句，不包含大括号"{}"
-    void compileStatements() {
+    private void compileStatements() {
 
     }
 
-    void compileDo() {
+    private void compileDo() {
 
     }
 
-    void compileLet() {
-
-    }
-
-
-    void compileWhile() {
+    private void compileLet() {
 
     }
 
 
-    void compileReturn() {
+    private void compileWhile() {
 
     }
 
 
-    void compileIf() {
+    private void compileReturn() {
 
     }
 
 
-    void compileExpression() {
+    private void compileIf() {
 
     }
 
 
-    void compileTerm() {
+    private void compileExpression() {
 
     }
 
 
-    void compileExpressionList() {
+    private void compileTerm() {
+
+    }
+
+
+    private void compileExpressionList() {
 
     }
 
     private void error(String expectedToken) {
         throw new IllegalStateException("Expected token missing: " + expectedToken +
-                " Current Token: " + jackTokenizer.getCurrentToken());
+                " Current Token: " + tokenizer.getCurrentToken());
     }
 
     private void requireSymbol(char symbol) {
-        jackTokenizer.advance();
-        if (jackTokenizer.tokenType() != TokenType.SYMBOL ||
-                jackTokenizer.symbol() != symbol) {
+        tokenizer.advance();
+        if (tokenizer.tokenType() != TokenType.SYMBOL ||
+                tokenizer.symbol() != symbol) {
             error("'" + symbol + "'");
         }
         tokenPrintWriter.println("<symbol> " + symbol + " </symbol>");
+    }
+
+    private boolean isInClassScope() {
+        tokenizer.advance();
+
+        if (tokenizer.tokenType() == TokenType.SYMBOL &&
+                tokenizer.symbol() == '}') {
+            tokenizer.retreat();
+            return false;
+        }
+        return true;
     }
 }
