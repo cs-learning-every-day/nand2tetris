@@ -34,8 +34,9 @@ public class JackAnalyzer {
             for (File f : jackFiles) {
                 String p = f.getAbsolutePath();
                 String pathWithoutSuffix = p.substring(0, p.lastIndexOf("."));
-                fileOutputPath = pathWithoutSuffix + "t.xml";
-                tokenFileOutputPath = pathWithoutSuffix + "tT.xml";
+                // 这里写文件 出现了一个bug: XXXt.xml 和 XXXT.xml写的是同一个文件
+                fileOutputPath = pathWithoutSuffix + "Tmp.xml";
+                tokenFileOutputPath = pathWithoutSuffix + "TmpT.xml";
 
                 var compilationEngine = new CompilationEngine(f, new File(fileOutputPath),
                         new File(tokenFileOutputPath));

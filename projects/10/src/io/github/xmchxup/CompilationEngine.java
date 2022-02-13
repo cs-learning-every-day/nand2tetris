@@ -67,7 +67,7 @@ public class CompilationEngine {
     }
 
     /**
-     * 编译静态声明颧字段声明
+     * 编译静态声明字段声明
      * 形式：(static | filed) type varName (,varName)* ;
      */
     private void compileClassVarDec() {
