@@ -11,9 +11,11 @@ public class CompilationEngine {
     private PrintWriter printWriter;
     private PrintWriter tokenPrintWriter;
     private JackTokenizer tokenizer;
+    private StringBuilder sb;
 
     CompilationEngine(File inFile, File outputFile, File outputTokenFile) {
         try {
+            sb = new StringBuilder();
             tokenizer = new JackTokenizer(inFile);
             printWriter = new PrintWriter(outputFile);
             tokenPrintWriter = new PrintWriter(outputTokenFile);
@@ -37,8 +39,12 @@ public class CompilationEngine {
             error("class");
         }
 
+        sb.append("<class>");
         tokenPrintWriter.println("<tokens>");
 
+        sb.append("<keyword> ")
+                .append(tokenizer.getCurrentToken())
+                .append(" </keyword>");
         tokenPrintWriter.println("<keyword> " + tokenizer.getCurrentToken() + " </keyword>");
 
         // classname
@@ -46,6 +52,9 @@ public class CompilationEngine {
         if (tokenizer.tokenType() != TokenType.IDENTIFIER) {
             error("classname");
         }
+        sb.append("<identifier> ")
+                .append(tokenizer.getCurrentToken())
+                .append(" </identifier>");
         tokenPrintWriter.println("<identifier> " + tokenizer.getCurrentToken() + " </identifier>");
 
         // {
@@ -61,9 +70,13 @@ public class CompilationEngine {
             throw new IllegalStateException("Unexpected tokens");
         }
 
+        sb.append("</class>");
         tokenPrintWriter.println("</tokens>");
+
+        printWriter.println(XmlFormatter.prettyFormat(sb.toString(), "2"));
         // save file
         tokenPrintWriter.close();
+        printWriter.close();
     }
 
     /**
@@ -91,15 +104,19 @@ public class CompilationEngine {
             return;
         }
 
+        sb.append("<classVarDec>");
+
         if (tokenizer.keyword() != KeywordType.STATIC &&
                 tokenizer.keyword() != KeywordType.FIELD) {
             error("static | field");
         }
 
+        sb.append("<keyword> ")
+                .append(tokenizer.getCurrentToken())
+                .append(" </keyword>");
         tokenPrintWriter.println("<keyword> " + tokenizer.getCurrentToken() + " </keyword>");
 
         compileType();
-
 
         do {
             // varName
@@ -107,6 +124,9 @@ public class CompilationEngine {
             if (tokenizer.tokenType() != TokenType.IDENTIFIER) {
                 error("identifier");
             }
+            sb.append("<identifier> ")
+                    .append(tokenizer.identifier())
+                    .append(" </identifier>");
             tokenPrintWriter.println("<identifier> " + tokenizer.identifier() + " </identifier>");
 
             // , or ;
@@ -117,8 +137,13 @@ public class CompilationEngine {
                 error(", or ;");
             }
 
+            sb.append("<symbol> ")
+                    .append(tokenizer.symbol())
+                    .append(" </symbol>");
             tokenPrintWriter.println("<symbol> " + tokenizer.symbol() + " </symbol>");
         } while (tokenizer.symbol() != ';');
+
+        sb.append("</classVarDec>");
         compileClassVarDec();
     }
 
@@ -134,11 +159,17 @@ public class CompilationEngine {
                         tokenizer.keyword() == KeywordType.INT ||
                         tokenizer.keyword() == KeywordType.CHAR)) {
             isType = true;
+            sb.append("<keyword> ")
+                    .append(tokenizer.getCurrentToken())
+                    .append(" </keyword>");
             tokenPrintWriter.println("<keyword> " + tokenizer.getCurrentToken() + " </keyword>");
         }
 
         if (tokenizer.tokenType() == TokenType.IDENTIFIER) {
             isType = true;
+            sb.append("<identifier> ")
+                    .append(tokenizer.identifier())
+                    .append(" </identifier>");
             tokenPrintWriter.println("<identifier> " + tokenizer.identifier() + " </identifier>");
         }
 
@@ -167,12 +198,20 @@ public class CompilationEngine {
             error("construct | function | method");
         }
 
+        sb.append("<subroutineDec>");
+
+        sb.append("<keyword> ")
+                .append(tokenizer.getCurrentToken())
+                .append(" </keyword>");
         tokenPrintWriter.println("<keyword> " + tokenizer.getCurrentToken() + " </keyword>");
 
         // return type
         tokenizer.advance();
         if (tokenizer.tokenType() == TokenType.KEYWORD &&
                 tokenizer.keyword() == KeywordType.VOID) { // Void
+            sb.append("<keyword> ")
+                    .append(tokenizer.getCurrentToken())
+                    .append(" </keyword>");
             tokenPrintWriter.println("<keyword> " + tokenizer.getCurrentToken() + " </keyword>");
         } else {
             tokenizer.retreat();
@@ -184,23 +223,33 @@ public class CompilationEngine {
         if (tokenizer.tokenType() != TokenType.IDENTIFIER) {
             error("subroutineName");
         }
+        sb.append("<identifier> ")
+                .append(tokenizer.identifier())
+                .append(" </identifier>");
         tokenPrintWriter.println("<identifier> " + tokenizer.identifier() + " </identifier>");
 
         // (
         requireSymbol('(');
         // parameter list
+        sb.append("<parameterList>");
         compileParameterList();
+        sb.append("</parameterList>");
         // )
         requireSymbol(')');
 
+        sb.append("<subroutineBody>");
         // {
         requireSymbol('{');
         // function body
         compileVarDec();
+        sb.append("<statements>");
         compileStatements();
+        sb.append("</statements>");
         // }
         requireSymbol('}');
+        sb.append("</subroutineBody>");
 
+        sb.append("</subroutineDec>");
         // next
         compileSubroutine();
     }
@@ -224,6 +273,9 @@ public class CompilationEngine {
             if (tokenizer.tokenType() != TokenType.IDENTIFIER) {
                 error("identifier");
             }
+            sb.append("<identifier> ")
+                    .append(tokenizer.identifier())
+                    .append(" </identifier>");
             tokenPrintWriter.println("<identifier> " + tokenizer.identifier() + " </identifier>");
 
             // , or )
@@ -235,6 +287,9 @@ public class CompilationEngine {
             }
 
             if (tokenizer.symbol() == ',') {
+                sb.append("<symbol> ")
+                        .append(tokenizer.symbol())
+                        .append(" </symbol>");
                 tokenPrintWriter.println("<symbol> " + tokenizer.symbol() + " </symbol>");
             } else {
                 tokenizer.retreat();
@@ -287,6 +342,11 @@ public class CompilationEngine {
             tokenizer.retreat();
             return;
         }
+        sb.append("<varDec>");
+
+        sb.append("<keyword> ")
+                .append(tokenizer.getCurrentToken())
+                .append(" </keyword>");
         tokenPrintWriter.println("<keyword> " + tokenizer.getCurrentToken() + " </keyword>");
 
         // type
@@ -298,6 +358,9 @@ public class CompilationEngine {
             if (tokenizer.tokenType() != TokenType.IDENTIFIER) {
                 error("varName");
             }
+            sb.append("<identifier> ")
+                    .append(tokenizer.identifier())
+                    .append(" </identifier>");
             tokenPrintWriter.println("<identifier> " + tokenizer.identifier() + " </identifier>");
 
             // , or ;
@@ -308,18 +371,27 @@ public class CompilationEngine {
                 error("',' or ';'");
             }
 
+            sb.append("<symbol> ")
+                    .append(tokenizer.symbol())
+                    .append(" </symbol>");
             tokenPrintWriter.println("<symbol> " + tokenizer.symbol() + " </symbol>");
         } while (tokenizer.symbol() != ';');
 
+        sb.append("</varDec>");
         // next
         compileVarDec();
     }
 
     private void compileDo() {
+        sb.append("<doStatement>");
+        sb.append("<keyword> ")
+                .append(tokenizer.getCurrentToken())
+                .append(" </keyword>");
         tokenPrintWriter.println("<keyword> " + tokenizer.getCurrentToken() + " </keyword>");
         compileCall();
         // ;
         requireSymbol(';');
+        sb.append("</doStatement>");
     }
 
     private void compileCall() {
@@ -327,26 +399,42 @@ public class CompilationEngine {
         if (tokenizer.tokenType() != TokenType.IDENTIFIER) {
             error("identifier");
         }
+        sb.append("<identifier> ")
+                .append(tokenizer.identifier())
+                .append(" </identifier>");
         tokenPrintWriter.println("<identifier> " + tokenizer.identifier() + " </identifier>");
 
         tokenizer.advance();
         if (tokenizer.tokenType() == TokenType.SYMBOL &&
                 tokenizer.symbol() == '.') {
+            sb.append("<symbol> ")
+                    .append(tokenizer.symbol())
+                    .append(" </symbol>");
             tokenPrintWriter.println("<symbol> " + tokenizer.symbol() + " </symbol>");
 
             tokenizer.advance();
             if (tokenizer.tokenType() != TokenType.IDENTIFIER) {
                 error("identifier");
             }
+            sb.append("<identifier> ")
+                    .append(tokenizer.identifier())
+                    .append(" </identifier>");
             tokenPrintWriter.println("<identifier> " + tokenizer.identifier() + " </identifier>");
 
             requireSymbol('(');
+            sb.append("<expressionList>");
             compileExpressionList();
+            sb.append("</expressionList>");
             requireSymbol(')');
         } else if (tokenizer.tokenType() == TokenType.SYMBOL &&
                 tokenizer.symbol() == '(') {
+            sb.append("<symbol> ")
+                    .append(tokenizer.symbol())
+                    .append(" </symbol>");
             tokenPrintWriter.println("<symbol> " + tokenizer.symbol() + " </symbol>");
+            sb.append("<expressionList>");
             compileExpressionList();
+            sb.append("</expressionList>");
             requireSymbol(')');
         } else {
             error(". | (");
@@ -354,6 +442,11 @@ public class CompilationEngine {
     }
 
     private void compileLet() {
+        sb.append("<letStatement>");
+
+        sb.append("<keyword> ")
+                .append(tokenizer.getCurrentToken())
+                .append(" </keyword>");
         tokenPrintWriter.println("<keyword> " + tokenizer.getCurrentToken() + " </keyword>");
 
         // varName
@@ -361,6 +454,9 @@ public class CompilationEngine {
         if (tokenizer.tokenType() != TokenType.IDENTIFIER) {
             error("varName");
         }
+        sb.append("<identifier> ")
+                .append(tokenizer.identifier())
+                .append(" </identifier>");
         tokenPrintWriter.println("<identifier> " + tokenizer.identifier() + " </identifier>");
 
         // [ or =
@@ -372,6 +468,9 @@ public class CompilationEngine {
 
         // []
         if (tokenizer.symbol() == '[') {
+            sb.append("<symbol> ")
+                    .append(tokenizer.symbol())
+                    .append(" </symbol>");
             tokenPrintWriter.println("<symbol> [ </symbol>");
             compileExpression();
             requireSymbol(']');
@@ -379,58 +478,92 @@ public class CompilationEngine {
         }
 
         // =
+        sb.append("<symbol> ")
+                .append(tokenizer.symbol())
+                .append(" </symbol>");
         tokenPrintWriter.println("<symbol> " + tokenizer.symbol() + " </symbol>");
         compileExpression();
         requireSymbol(';');
+        sb.append("</letStatement>");
     }
 
     private void compileWhile() {
+        sb.append("<whileStatement>");
+
+        sb.append("<keyword> ")
+                .append(tokenizer.getCurrentToken())
+                .append(" </keyword>");
         tokenPrintWriter.println("<keyword> " + tokenizer.getCurrentToken() + " </keyword>");
 
         requireSymbol('(');
         compileExpression();
         requireSymbol(')');
         requireSymbol('{');
+        sb.append("<statements>");
         compileStatements();
+        sb.append("</statements>");
         requireSymbol('}');
+
+        sb.append("</whileStatement>");
     }
 
     private void compileReturn() {
+        sb.append("<returnStatement>");
+
+        sb.append("<keyword> ")
+                .append(tokenizer.getCurrentToken())
+                .append(" </keyword>");
         tokenPrintWriter.println("<keyword> " + tokenizer.getCurrentToken() + " </keyword>");
 
         tokenizer.advance();
         if (tokenizer.tokenType() == TokenType.SYMBOL &&
-                tokenizer.symbol() == ';') {
+                tokenizer.symbol() == ';') { // return;
+            sb.append("<symbol> ")
+                    .append(tokenizer.symbol())
+                    .append(" </symbol>");
             tokenPrintWriter.println("<symbol> " + tokenizer.symbol() + " </symbol>");
-            return;
+        } else {
+            tokenizer.retreat();
+            compileExpression();
+            requireSymbol(';');
         }
 
-        tokenizer.retreat();
-        compileExpression();
-        requireSymbol(';');
+        sb.append("</returnStatement>");
     }
 
     private void compileIf() {
+        sb.append("<ifStatement>");
+        sb.append("<keyword> ")
+                .append(tokenizer.getCurrentToken())
+                .append(" </keyword>");
         tokenPrintWriter.println("<keyword> " + tokenizer.getCurrentToken() + " </keyword>");
 
         requireSymbol('(');
         compileExpression();
         requireSymbol(')');
         requireSymbol('{');
+        sb.append("<statements>");
         compileStatements();
+        sb.append("</statements>");
         requireSymbol('}');
 
         // else
         tokenizer.advance();
         if (tokenizer.tokenType() == TokenType.KEYWORD &&
                 tokenizer.keyword() == KeywordType.ELSE) {
+            sb.append("<keyword> ")
+                    .append(tokenizer.getCurrentToken())
+                    .append(" </keyword>");
             tokenPrintWriter.println("<keyword> " + tokenizer.getCurrentToken() + " </keyword>");
             requireSymbol('{');
+            sb.append("<statements>");
             compileStatements();
+            sb.append("</statements>");
             requireSymbol('}');
         } else {
             tokenizer.retreat();
         }
+        sb.append("</ifStatement>");
     }
 
     /***
@@ -449,6 +582,7 @@ public class CompilationEngine {
                 tokenizer.advance();
                 if (tokenizer.tokenType() == TokenType.SYMBOL &&
                         tokenizer.symbol() == ',') {
+                    sb.append("<symbol> , </symbol>");
                     tokenPrintWriter.println("<symbol> , </symbol>");
                     compileExpression();
                 } else {
@@ -460,6 +594,7 @@ public class CompilationEngine {
     }
 
     private void compileExpression() {
+        sb.append("<expression>");
         // example: x + 2
         compileTerm();
         do {
@@ -467,12 +602,18 @@ public class CompilationEngine {
             if (tokenizer.tokenType() == TokenType.SYMBOL &&
                     tokenizer.isOperator()) {
                 if (tokenizer.symbol() == '>') {
+                    sb.append("<symbol> &gt; </symbol>");
                     tokenPrintWriter.println("<symbol> &gt; </symbol>");
                 } else if (tokenizer.symbol() == '<') {
+                    sb.append("<symbol> &lt; </symbol>");
                     tokenPrintWriter.println("<symbol> &lt; </symbol>");
                 } else if (tokenizer.symbol() == '&') {
+                    sb.append("<symbol> &amp; </symbol>");
                     tokenPrintWriter.println("<symbol> &amp; </symbol>");
                 } else {
+                    sb.append("<symbol> ")
+                            .append(tokenizer.symbol())
+                            .append(" </symbol>");
                     tokenPrintWriter.println("<symbol> " + tokenizer.symbol() + " </symbol>");
                 }
                 //term
@@ -482,9 +623,12 @@ public class CompilationEngine {
                 break;
             }
         } while (true);
+        sb.append("</expression>");
     }
 
     private void compileTerm() {
+        sb.append("<term>");
+
         tokenizer.advance();
         if (tokenizer.tokenType() == TokenType.IDENTIFIER) {
             String tmpId = tokenizer.identifier();
@@ -492,7 +636,11 @@ public class CompilationEngine {
             tokenizer.advance();
             if (tokenizer.tokenType() == TokenType.SYMBOL &&
                     tokenizer.symbol() == '[') { // array
+                sb.append("<identifier> ")
+                        .append(tmpId)
+                        .append(" </identifier>");
                 tokenPrintWriter.println("<identifier> " + tmpId + " </identifier>");
+                sb.append("<symbol> [ </symbol>");
                 tokenPrintWriter.println("<symbol> [ </symbol>");
                 compileExpression();
                 requireSymbol(']');
@@ -502,21 +650,34 @@ public class CompilationEngine {
                 tokenizer.retreat();
                 compileCall();
             } else { // var name
+                sb.append("<identifier> ")
+                        .append(tmpId)
+                        .append(" </identifier>");
                 tokenPrintWriter.println("<identifier> " + tmpId + " </identifier>");
                 tokenizer.retreat();
             }
         } else {
             if (tokenizer.tokenType() == TokenType.INT_CONST) {
+                sb.append("<integerConstant> ")
+                        .append(tokenizer.intVal())
+                        .append(" </integerConstant>");
                 tokenPrintWriter.println("<integerConstant> " + tokenizer.intVal() + " </integerConstant>");
             } else if (tokenizer.tokenType() == TokenType.STRING_CONST) {
+                sb.append("<stringConstant> ")
+                        .append(tokenizer.stringVal())
+                        .append(" </stringConstant>");
                 tokenPrintWriter.println("<stringConstant> " + tokenizer.stringVal() + " </stringConstant>");
             } else if (tokenizer.tokenType() == TokenType.KEYWORD &&
                     (tokenizer.keyword() == KeywordType.TRUE ||
                             tokenizer.keyword() == KeywordType.FALSE ||
                             tokenizer.keyword() == KeywordType.NULL ||
                             tokenizer.keyword() == KeywordType.THIS)) {
+                sb.append("<keyword> ")
+                        .append(tokenizer.getCurrentToken())
+                        .append(" </keyword>");
                 tokenPrintWriter.println("<keyword> " + tokenizer.getCurrentToken() + " </keyword>");
             } else if (tokenizer.tokenType() == TokenType.SYMBOL && tokenizer.symbol() == '(') {
+                sb.append("<symbol> ( </symbol>");
                 tokenPrintWriter.println("<symbol> ( </symbol>");
                 //expression
                 compileExpression();
@@ -524,6 +685,9 @@ public class CompilationEngine {
                 requireSymbol(')');
             } else if (tokenizer.tokenType() == TokenType.SYMBOL &&
                     (tokenizer.symbol() == '-' || tokenizer.symbol() == '~')) {
+                sb.append("<symbol> ")
+                        .append(tokenizer.symbol())
+                        .append(" </symbol>");
                 tokenPrintWriter.println("<symbol> " + tokenizer.symbol() + " </symbol>");
                 //term
                 compileTerm();
@@ -531,6 +695,8 @@ public class CompilationEngine {
                 error("integerConstant | stringConstant | keywordConstant | '(' expression ')'| unaryOp term");
             }
         }
+
+        sb.append("</term>");
     }
 
     private void error(String expectedToken) {
@@ -544,6 +710,9 @@ public class CompilationEngine {
                 tokenizer.symbol() != symbol) {
             error("'" + symbol + "'");
         }
+        sb.append("<symbol> ")
+                .append(symbol)
+                .append(" </symbol>");
         tokenPrintWriter.println("<symbol> " + symbol + " </symbol>");
     }
 }

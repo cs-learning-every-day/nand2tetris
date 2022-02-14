@@ -66,7 +66,7 @@ public class JackTokenizer {
         }
 
         keywordReg = sb.toString();
-        sb = new StringBuilder();
+        sb.setLength(0);
         sb.append("[")
                 .append("\\+")
                 .append("\\-")
