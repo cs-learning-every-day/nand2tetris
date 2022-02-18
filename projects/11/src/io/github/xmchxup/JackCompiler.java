@@ -10,7 +10,7 @@ import java.util.stream.Collectors;
 /**
  * @author huayang (sunhuayangak47@gmail.com)
  */
-public class JackAnalyzer {
+public class JackCompiler {
     public static void main(String[] args) {
         if (args.length != 1) {
             System.out.println("read README.md");
@@ -27,23 +27,17 @@ public class JackAnalyzer {
                 }
                 jackFiles.add(file);
             }
-
             String fileOutputPath = "";
-            String tokenFileOutputPath = "";
 
             for (File f : jackFiles) {
-                String p = f.getAbsolutePath();
-                String pathWithoutSuffix = p.substring(0, p.lastIndexOf("."));
-                // 这里写文件 出现了一个bug: XXXt.xml 和 XXXT.xml写的是同一个文件
-                fileOutputPath = pathWithoutSuffix + "Tmp.xml";
-                tokenFileOutputPath = pathWithoutSuffix + "TmpT.xml";
+                fileOutputPath = f.getAbsolutePath().substring(
+                        0,
+                        f.getAbsolutePath().lastIndexOf(".")) + ".vm";
 
-                var compilationEngine = new CompilationEngine(f, new File(fileOutputPath),
-                        new File(tokenFileOutputPath));
+                var compilationEngine = new CompilationEngine(f, new File(fileOutputPath));
                 compilationEngine.compileClass();
 
                 System.out.println("File created : " + fileOutputPath);
-                System.out.println("File created : " + tokenFileOutputPath);
             }
         }
     }
