@@ -93,12 +93,8 @@ public class JackTokenizer {
         intReg = "[0-9]+";
         strReg = "\"[^\"]*\"";
         idReg = "[a-zA-Z_][\\w_]*";
-
-        tokenPatterns = Pattern.compile(keywordReg +
-                symbolReg + "|" +
-                intReg + "|" +
-                strReg + "|" +
-                idReg);
+        tokenPatterns = Pattern.compile(idReg + "|" +
+                keywordReg + symbolReg + "|" + intReg + "|" + strReg);
     }
 
     // 获取文件行 并且移除多余的空格和注释
