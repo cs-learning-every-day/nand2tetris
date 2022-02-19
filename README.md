@@ -16,4 +16,4 @@
 - [x] Project 9: High-Level Language
 - [x] Project 10: Compiler I: Syntax Analysis
 - [x] Project 11: Compiler II: Code Generation
-- [ ] Project 12: Operating System
+- [x] Project 12: Operating System
